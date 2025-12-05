@@ -19,7 +19,10 @@ class Restaurant extends Model
         'phone',
         'is_active',
         'logo_path',
+        'logo_url',
     ];
+
+    protected $appends = ['logo_url'];
 
     protected $casts = [
         'is_active' => 'boolean',
@@ -27,6 +30,11 @@ class Restaurant extends Model
 
     public function getLogoUrlAttribute(): ?string
     {
+        // Always prioritize logo_url if it exists, otherwise use logo_path
+        if (!empty($this->attributes['logo_url'])) {
+            return $this->attributes['logo_url'];
+        }
+
         return $this->logo_path ? url('/storage/' . $this->logo_path) : null;
     }
 

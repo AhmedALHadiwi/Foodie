@@ -15,6 +15,7 @@ export function RestaurantList() {
   const loadRestaurants = async () => {
     try {
       const restaurantsData = await apiFetch('/restaurants');
+      console.log('Restaurants data:', restaurantsData);
       setRestaurants(restaurantsData || []);
     } catch (error) {
       console.error('Error loading restaurants:', error);
@@ -41,16 +42,18 @@ export function RestaurantList() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {restaurants.map((restaurant) => (
+      {restaurants.map((restaurant) => {
+        console.log('Restaurant:', restaurant.name, 'logo_url:', restaurant.logo_url);
+        return (
         <div
           key={restaurant.id}
           onClick={() => navigate(`/restaurants/${restaurant.id}`)}
           className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow cursor-pointer group"
         >
           <div className="h-48 bg-gradient-to-br from-orange-400 to-orange-600 relative overflow-hidden">
-            {restaurant.image_url ? (
+            {restaurant.logo_url ? (
               <img
-                src={restaurant.image_url}
+                src={restaurant.logo_url}
                 alt={restaurant.name}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
@@ -98,7 +101,8 @@ export function RestaurantList() {
             </button>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

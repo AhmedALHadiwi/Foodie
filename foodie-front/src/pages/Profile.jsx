@@ -1,36 +1,37 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { apiFetch } from '../lib/api';
+import { useState, useEffect } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { apiFetch } from "../lib/api";
 // eslint-disable-next-line no-unused-vars
-import { User, Building2, Phone, Mail, Camera, Save, X } from 'lucide-react';
+import { User, Building2, Phone, Mail, Camera, Save, X } from "lucide-react";
 
 export default function Profile() {
   const { setUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
   const [profile, setProfile] = useState({
     user: null,
-    restaurant: null
+    restaurant: null,
   });
 
   const [userForm, setUserForm] = useState({
-    full_name: '',
-    email: '',
-    phone: ''
+    full_name: "",
+    email: "",
+    phone: "",
   });
 
   const [restaurantForm, setRestaurantForm] = useState({
-    name: '',
-    phone: '',
-    address: '',
-    logo_url: ''
+    name: "",
+    phone: "",
+    address: "",
+    logo_url: "",
   });
 
   const [logoPreview, setLogoPreview] = useState(null);
   const [newLogo, setNewLogo] = useState(null);
+  const [logoInputType, setLogoInputType] = useState("file"); // 'file' or 'url'
 
   useEffect(() => {
     loadProfile();
@@ -38,28 +39,30 @@ export default function Profile() {
 
   const loadProfile = async () => {
     try {
-      const response = await apiFetch('/profile');
+      const response = await apiFetch("/profile");
       const data = response.data; // Extract data from response
-      
+
       setProfile(data);
-      
+
       setUserForm({
         full_name: data.user.full_name,
         email: data.user.email,
-        phone: data.user.phone || ''
+        phone: data.user.phone || "",
       });
 
       if (data.restaurant) {
+        console.log('Restaurant data from API:', data.restaurant);
         setRestaurantForm({
           name: data.restaurant.name,
           phone: data.restaurant.phone,
           address: data.restaurant.address,
-          logo_url: data.restaurant.logo_url
+          logo_url: data.restaurant.logo_url,
         });
+        console.log('Setting logo preview to:', data.restaurant.logo_url);
         setLogoPreview(data.restaurant.logo_url);
       }
     } catch {
-      setError('Failed to load profile');
+      setError("Failed to load profile");
     }
     setLoading(false);
   };
@@ -67,19 +70,19 @@ export default function Profile() {
   const handleUserSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
 
     try {
-      const response = await apiFetch('/profile/update', {
-        method: 'POST',
-        body: JSON.stringify(userForm)
+      const response = await apiFetch("/profile/update", {
+        method: "POST",
+        body: JSON.stringify(userForm),
       });
 
       setUser(response.user);
-      setSuccess('Profile updated successfully!');
+      setSuccess("Profile updated successfully!");
     } catch {
-      setError('Failed to update profile');
+      setError("Failed to update profile");
     }
     setSaving(false);
   };
@@ -87,34 +90,38 @@ export default function Profile() {
   const handleRestaurantSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
 
     try {
       const formData = new FormData();
-      formData.append('name', restaurantForm.name);
-      formData.append('phone', restaurantForm.phone);
-      formData.append('address', restaurantForm.address);
-      
-      if (newLogo) {
-        formData.append('logo', newLogo);
+      formData.append("name", restaurantForm.name);
+      formData.append("phone", restaurantForm.phone);
+      formData.append("address", restaurantForm.address);
+
+      if (logoInputType === "file" && newLogo) {
+        formData.append("logo", newLogo);
+      } else if (logoInputType === "url" && restaurantForm.logo_url) {
+        formData.append("logo_url", restaurantForm.logo_url);
       }
 
-      const response = await apiFetch('/profile/update-restaurant', {
-        method: 'POST',
-        body: formData
+      const response = await apiFetch("/profile/update-restaurant", {
+        method: "POST",
+        body: formData,
       });
 
+      console.log('Update restaurant response:', response);
       setProfile(prev => ({ ...prev, restaurant: response.restaurant }));
       setSuccess('Restaurant updated successfully!');
       setNewLogo(null);
-      
+
       if (response.restaurant.logo_url) {
+        console.log('Updated logo URL:', response.restaurant.logo_url);
         setLogoPreview(response.restaurant.logo_url);
         setRestaurantForm(prev => ({ ...prev, logo_url: response.restaurant.logo_url }));
       }
     } catch {
-      setError('Failed to update restaurant');
+      setError("Failed to update restaurant");
     }
     setSaving(false);
   };
@@ -131,9 +138,27 @@ export default function Profile() {
     }
   };
 
+  const handleLogoUrlChange = (e) => {
+    const url = e.target.value;
+    setRestaurantForm({ ...restaurantForm, logo_url: url });
+    setLogoPreview(url);
+    setNewLogo(null); // Clear any selected file
+  };
+
   const removeLogo = () => {
     setNewLogo(null);
     setLogoPreview(restaurantForm.logo_url || null);
+  };
+
+  const switchInputType = (type) => {
+    setLogoInputType(type);
+    if (type === "file") {
+      setLogoPreview(restaurantForm.logo_url || null);
+      setNewLogo(null);
+    } else {
+      setLogoPreview(restaurantForm.logo_url || null);
+      setNewLogo(null);
+    }
   };
 
   if (loading) {
@@ -149,7 +174,9 @@ export default function Profile() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white shadow rounded-lg">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-gray-900">Profile Settings</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Profile Settings
+            </h1>
           </div>
 
           {error && (
@@ -168,7 +195,9 @@ export default function Profile() {
           <div className="p-6">
             <div className="flex items-center mb-6">
               <User className="w-6 h-6 text-orange-600 mr-2" />
-              <h2 className="text-lg font-semibold text-gray-900">Personal Information</h2>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Personal Information
+              </h2>
             </div>
 
             <form onSubmit={handleUserSubmit} className="space-y-6">
@@ -179,7 +208,9 @@ export default function Profile() {
                 <input
                   type="text"
                   value={userForm.full_name}
-                  onChange={(e) => setUserForm({ ...userForm, full_name: e.target.value })}
+                  onChange={(e) =>
+                    setUserForm({ ...userForm, full_name: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   required
                 />
@@ -192,7 +223,9 @@ export default function Profile() {
                 <input
                   type="email"
                   value={userForm.email}
-                  onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                  onChange={(e) =>
+                    setUserForm({ ...userForm, email: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   required
                 />
@@ -205,7 +238,9 @@ export default function Profile() {
                 <input
                   type="tel"
                   value={userForm.phone}
-                  onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })}
+                  onChange={(e) =>
+                    setUserForm({ ...userForm, phone: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
@@ -217,18 +252,20 @@ export default function Profile() {
                   className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50"
                 >
                   <Save className="w-4 h-4 mr-2" />
-                  {saving ? 'Saving...' : 'Save Changes'}
+                  {saving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>
           </div>
 
           {/* Restaurant Section - Only for owners */}
-          {profile.user?.role === 'owner' && (
+          {profile.user?.role === "owner" && (
             <div className="border-t border-gray-200 p-6">
               <div className="flex items-center mb-6">
                 <Building2 className="w-6 h-6 text-orange-600 mr-2" />
-                <h2 className="text-lg font-semibold text-gray-900">Restaurant Information</h2>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Restaurant Information
+                </h2>
               </div>
 
               <form onSubmit={handleRestaurantSubmit} className="space-y-6">
@@ -239,7 +276,12 @@ export default function Profile() {
                   <input
                     type="text"
                     value={restaurantForm.name}
-                    onChange={(e) => setRestaurantForm({ ...restaurantForm, name: e.target.value })}
+                    onChange={(e) =>
+                      setRestaurantForm({
+                        ...restaurantForm,
+                        name: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                     required
                   />
@@ -252,7 +294,12 @@ export default function Profile() {
                   <input
                     type="tel"
                     value={restaurantForm.phone}
-                    onChange={(e) => setRestaurantForm({ ...restaurantForm, phone: e.target.value })}
+                    onChange={(e) =>
+                      setRestaurantForm({
+                        ...restaurantForm,
+                        phone: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                     required
                   />
@@ -264,7 +311,12 @@ export default function Profile() {
                   </label>
                   <textarea
                     value={restaurantForm.address}
-                    onChange={(e) => setRestaurantForm({ ...restaurantForm, address: e.target.value })}
+                    onChange={(e) =>
+                      setRestaurantForm({
+                        ...restaurantForm,
+                        address: e.target.value,
+                      })
+                    }
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                     required
@@ -300,16 +352,63 @@ export default function Profile() {
                         </div>
                       )}
                     </div>
-                    <div className="flex-1">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleLogoChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      />
-                      <p className="text-sm text-gray-500 mt-1">
-                        Upload a new logo. Recommended size: 200x200px. Max size: 2MB.
-                      </p>
+                    <div className="flex-1 space-y-3">
+                      {/* Input type selector */}
+                      <div className="flex space-x-4">
+                        <button
+                          type="button"
+                          onClick={() => switchInputType('file')}
+                          className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                            logoInputType === 'file'
+                              ? 'bg-orange-500 text-white'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
+                        >
+                          Upload File
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => switchInputType('url')}
+                          className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                            logoInputType === 'url'
+                              ? 'bg-orange-500 text-white'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
+                        >
+                          Use URL
+                        </button>
+                      </div>
+
+                      {/* File input */}
+                      {logoInputType === 'file' && (
+                        <div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">
+                            Upload a new logo. Recommended size: 200x200px. Max size: 2MB.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* URL input */}
+                      {logoInputType === 'url' && (
+                        <div>
+                          <input
+                            type="url"
+                            value={restaurantForm.logo_url}
+                            onChange={handleLogoUrlChange}
+                            placeholder="https://example.com/logo.png"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">
+                            Enter a direct link to your restaurant logo image.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -321,7 +420,7 @@ export default function Profile() {
                     className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50"
                   >
                     <Save className="w-4 h-4 mr-2" />
-                    {saving ? 'Saving...' : 'Save Changes'}
+                    {saving ? "Saving..." : "Save Changes"}
                   </button>
                 </div>
               </form>

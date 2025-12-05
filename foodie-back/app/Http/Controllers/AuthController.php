@@ -53,7 +53,8 @@ class AuthController extends Controller
             'restaurant_name' => 'required_if:is_restaurant_owner,1|string|max:255',
             'restaurant_phone' => 'required_if:is_restaurant_owner,1|string|max:20',
             'restaurant_address' => 'required_if:is_restaurant_owner,1|string',
-            'restaurant_logo' => 'nullable_if:is_restaurant_owner,1|image|mimes:jpeg,png,jpg,gif|max:2048'
+            'restaurant_logo' => 'nullable_if:is_restaurant_owner,1|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'restaurant_logo_url' => 'nullable_if:is_restaurant_owner,1|url|max:500'
         ]);
 
         // Set default value for is_restaurant_owner if not provided
@@ -74,8 +75,12 @@ class AuthController extends Controller
         $restaurant = null;
         if ($isRestaurantOwner) {
             $logoPath = null;
+            $logoUrl = null;
+
             if ($request->hasFile('restaurant_logo')) {
                 $logoPath = $request->file('restaurant_logo')->store('restaurants', 'public');
+            } elseif (!empty($validated['restaurant_logo_url'])) {
+                $logoUrl = $validated['restaurant_logo_url'];
             }
 
             $restaurant = Restaurant::create([
@@ -84,6 +89,7 @@ class AuthController extends Controller
                 'phone' => $validated['restaurant_phone'],
                 'address' => $validated['restaurant_address'],
                 'logo_path' => $logoPath,
+                'logo_url' => $logoUrl,
                 'is_active' => true,
             ]);
         }
@@ -127,7 +133,19 @@ class AuthController extends Controller
                 'role' => $user->role,
                 'created_at' => $user->created_at,
             ],
-            'restaurant' => $restaurant
+            'restaurant' => $restaurant ? [
+                'id' => $restaurant->id,
+                'owner_id' => $restaurant->owner_id,
+                'name' => $restaurant->name,
+                'description' => $restaurant->description,
+                'address' => $restaurant->address,
+                'phone' => $restaurant->phone,
+                'is_active' => $restaurant->is_active,
+                'logo_path' => $restaurant->logo_path,
+                'logo_url' => $restaurant->logo_url,
+                'created_at' => $restaurant->created_at,
+                'updated_at' => $restaurant->updated_at,
+            ] : null
         ], 200);
     }
 
@@ -163,10 +181,13 @@ class AuthController extends Controller
             'name' => 'string|max:255',
             'phone' => 'string|max:20',
             'address' => 'string',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'logo_url' => 'nullable|url|max:500'
         ]);
 
-        // Handle logo upload
+        // Handle logo upload or URL
+        $hasNewLogo = false;
+
         if ($request->hasFile('logo')) {
             // Delete old logo if exists
             if ($restaurant->logo_path) {
@@ -175,6 +196,15 @@ class AuthController extends Controller
 
             $logoPath = $request->file('logo')->store('restaurants', 'public');
             $validated['logo_path'] = $logoPath;
+            $validated['logo_url'] = null; // Clear URL if file is uploaded
+            $hasNewLogo = true;
+        } elseif (!empty($validated['logo_url'])) {
+            // If URL is provided, clear the file path
+            $validated['logo_path'] = null;
+            $hasNewLogo = true;
+        } elseif (isset($validated['logo_url']) && empty($validated['logo_url'])) {
+            // If URL field is empty string, clear it
+            $validated['logo_url'] = null;
         }
 
         $restaurant->update($validated);

@@ -18,6 +18,8 @@ export function SignupForm({ onSuccess, onSwitchToLogin }) {
   const [restaurantAddress, setRestaurantAddress] = useState('');
   const [restaurantLogo, setRestaurantLogo] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
+  const [logoInputType, setLogoInputType] = useState('file'); // 'file' or 'url'
+  const [restaurantLogoUrl, setRestaurantLogoUrl] = useState('');
   
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,9 +38,27 @@ export function SignupForm({ onSuccess, onSwitchToLogin }) {
     }
   };
 
+  const handleLogoUrlChange = (e) => {
+    const url = e.target.value;
+    setRestaurantLogoUrl(url);
+    setLogoPreview(url);
+    setRestaurantLogo(null); // Clear any selected file
+  };
+
   const removeLogo = () => {
     setRestaurantLogo(null);
     setLogoPreview(null);
+  };
+
+  const switchInputType = (type) => {
+    setLogoInputType(type);
+    if (type === 'file') {
+      setLogoPreview(null);
+      setRestaurantLogo(null);
+    } else {
+      setLogoPreview(null);
+      setRestaurantLogo(null);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -71,8 +91,10 @@ export function SignupForm({ onSuccess, onSwitchToLogin }) {
         formData.append('restaurant_name', restaurantName);
         formData.append('restaurant_phone', restaurantPhone);
         formData.append('restaurant_address', restaurantAddress);
-        if (restaurantLogo) {
+        if (logoInputType === 'file' && restaurantLogo) {
           formData.append('restaurant_logo', restaurantLogo);
+        } else if (logoInputType === 'url' && restaurantLogoUrl) {
+          formData.append('restaurant_logo_url', restaurantLogoUrl);
         }
       }
 
@@ -276,17 +298,64 @@ export function SignupForm({ onSuccess, onSwitchToLogin }) {
                     </div>
                   )}
                 </div>
-                <div className="flex-1">
-                  <input
-                    id="restaurantLogo"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Upload restaurant logo (optional). Max size: 2MB.
-                  </p>
+                <div className="flex-1 space-y-3">
+                  {/* Input type selector */}
+                  <div className="flex space-x-4">
+                    <button
+                      type="button"
+                      onClick={() => switchInputType('file')}
+                      className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                        logoInputType === 'file'
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      Upload File
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => switchInputType('url')}
+                      className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                        logoInputType === 'url'
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      Use URL
+                    </button>
+                  </div>
+
+                  {/* File input */}
+                  {logoInputType === 'file' && (
+                    <div>
+                      <input
+                        id="restaurantLogo"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Upload restaurant logo (optional). Max size: 2MB.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* URL input */}
+                  {logoInputType === 'url' && (
+                    <div>
+                      <input
+                        type="url"
+                        value={restaurantLogoUrl}
+                        onChange={handleLogoUrlChange}
+                        placeholder="https://example.com/logo.png"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Enter a direct link to your restaurant logo image (optional).
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
