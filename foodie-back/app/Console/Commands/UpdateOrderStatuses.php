@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Order;
+use App\Events\OrderStatusUpdated;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -37,10 +38,10 @@ class UpdateOrderStatuses extends Command
             ->get();
 
         foreach ($orders as $order) {
+            $oldStatus = $order->status;
             $order->updateStatusWithTimestamp();
 
             if ($order->isDirty('status')) {
-                $oldStatus = $order->getOriginal('status');
                 $newStatus = $order->status;
                 $order->save();
 
@@ -57,6 +58,14 @@ class UpdateOrderStatuses extends Command
                     'on_the_way_at' => $order->on_the_way_at,
                     'delivered_at' => $order->delivered_at,
                 ]);
+
+                // Emit real-time event
+                OrderStatusUpdated::dispatch(
+                    $order->id,
+                    $newStatus,
+                    $order->restaurant_id,
+                    $order->user_id
+                );
             }
         }
 

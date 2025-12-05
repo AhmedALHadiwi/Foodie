@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../lib/api';
 import { Store, MapPin, Phone, Star } from 'lucide-react';
  
-export function RestaurantList({ onSelectRestaurant }) {
+export function RestaurantList() {
+  const navigate = useNavigate();
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,7 +44,7 @@ export function RestaurantList({ onSelectRestaurant }) {
       {restaurants.map((restaurant) => (
         <div
           key={restaurant.id}
-          onClick={() => onSelectRestaurant(restaurant.id)}
+          onClick={() => navigate(`/restaurants/${restaurant.id}`)}
           className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow cursor-pointer group"
         >
           <div className="h-48 bg-gradient-to-br from-orange-400 to-orange-600 relative overflow-hidden">

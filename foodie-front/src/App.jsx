@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { hasToken } from './utils/authUtils';
 import { CartProvider } from './contexts/CartContext';
@@ -20,16 +20,23 @@ import { ProtectedRoute } from './components/Routing/ProtectedRoute';
 import { PrivateRoute } from './components/Routing/PrivateRoute';
 import { GuestRoute } from './components/Routing/GuestRoute';
 import Profile from './pages/Profile';
+import { RestaurantMenuPage } from './pages/RestaurantMenuPage';
 /* eslint-enable no-unused-vars */
 
 /* eslint-disable no-unused-vars */
-function AppContent() {
+function AppContentWithRoutes() {
+  const navigate = useNavigate();
+  
+  return <AppContent navigate={navigate} />;
+}
+
+/* eslint-disable no-unused-vars */
+function AppContent({ navigate }) {
   const { user, profile, loading } = useAuth();
   const [authMode, setAuthMode] = useState(null);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [showCart, setShowCart] = useState(false);
   const [trackingOrderId, setTrackingOrderId] = useState(null);
-  const [showOrderHistory, setShowOrderHistory] = useState(false);
   const [ratingOrderId, setRatingOrderId] = useState(null);
   const [reviewData, setReviewData] = useState(null);
   const [currentView, setCurrentView] = useState('customer');
@@ -42,18 +49,19 @@ function AppContent() {
     );
   }
 
+  console.log('AppContent rendering, currentView:', currentView);
+
   const handleOrderPlaced = (orderId) => {
     setShowCart(false);
     setTrackingOrderId(orderId);
   };
 
   const handleViewOrder = (orderId) => {
-    setShowOrderHistory(false);
+    navigate('/orders');
     setTrackingOrderId(orderId);
   };
 
   const handleRateOrder = (orderId) => {
-    setShowOrderHistory(false);
     setTrackingOrderId(null);
     setRatingOrderId(orderId);
   };
@@ -72,8 +80,7 @@ function AppContent() {
   };
 
   return (
-    <Router>
-      <Routes>
+    <Routes>
         {/* Landing page - only accessible when not authenticated */}
         <Route
           path="/"
@@ -202,26 +209,17 @@ function AppContent() {
               <div className="min-h-screen bg-gray-50">
                 <Header
                   onShowAuth={() => setAuthMode('login')}
-                  onShowOrders={() => {
-                    setShowOrderHistory(true);
-                    setSelectedRestaurant(null);
-                  }}
+                  onShowOrders={() => navigate('/orders')}
                   currentView={currentView}
                   onToggleView={() => {
                     setCurrentView(currentView === 'customer' ? 'restaurant' : 'customer');
                     setSelectedRestaurant(null);
-                    setShowOrderHistory(false);
                   }}
                 />
 
                 <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                   {currentView === 'restaurant' && profile?.data?.user?.role === 'owner' ? (
                     <RestaurantDashboard />
-                  ) : showOrderHistory ? (
-                    <OrderHistory
-                      onViewOrder={handleViewOrder}
-                      onReviewRestaurant={handleReviewRestaurant}
-                    />
                   ) : selectedRestaurant ? (
                     <MenuBrowser
                       restaurantId={selectedRestaurant}
@@ -231,7 +229,7 @@ function AppContent() {
                   ) : (
                     <div>
                       <h2 className="text-3xl font-bold text-gray-900 mb-6">Available Restaurants</h2>
-                      <RestaurantList onSelectRestaurant={setSelectedRestaurant} />
+                      <RestaurantList />
                     </div>
                   )}
                 </main>
@@ -279,6 +277,189 @@ function AppContent() {
           }
         />
 
+        {/* Restaurant menu route */}
+        <Route
+          path="/restaurants/:id"
+          element={
+            <ProtectedRoute>
+              <div className="min-h-screen bg-gray-50">
+                <Header
+                  onShowAuth={() => setAuthMode('login')}
+                  onShowOrders={() => navigate('/orders')}
+                  currentView={currentView}
+                  onToggleView={() => {
+                    setCurrentView(currentView === 'customer' ? 'restaurant' : 'customer');
+                    setSelectedRestaurant(null);
+                  }}
+                />
+                <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                  <RestaurantMenuPage />
+                </main>
+
+                {showCart && (
+                  <Cart
+                    onClose={() => setShowCart(false)}
+                    onOrderPlaced={handleOrderPlaced}
+                  />
+                )}
+
+                {trackingOrderId && (
+                  <OrderTracking
+                    orderId={trackingOrderId}
+                    onClose={() => setTrackingOrderId(null)}
+                    onRate={(orderId) => {
+                      setTrackingOrderId(null);
+                      setRatingOrderId(orderId);
+                    }}
+                  />
+                )}
+
+                {ratingOrderId && (
+                  <RatingForm
+                    orderId={ratingOrderId}
+                    onClose={() => setRatingOrderId(null)}
+                    onSuccess={() => {
+                      setRatingOrderId(null);
+                      alert('Thank you for your feedback!');
+                    }}
+                  />
+                )}
+
+                {reviewData && (
+                  <ReviewForm
+                    orderId={reviewData.orderId}
+                    restaurantId={reviewData.restaurantId}
+                    onClose={handleCloseReview}
+                    onSuccess={handleReviewSuccess}
+                  />
+                )}
+
+                </div>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Cart route */}
+        <Route
+          path="/cart"
+          element={
+            <ProtectedRoute>
+              <div className="min-h-screen bg-gray-50">
+                <Header
+                  onShowAuth={() => setAuthMode('login')}
+                  onShowOrders={() => navigate('/orders')}
+                  currentView={currentView}
+                  onToggleView={() => {
+                    setCurrentView(currentView === 'customer' ? 'restaurant' : 'customer');
+                    setSelectedRestaurant(null);
+                  }}
+                />
+                <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                  <div className="max-w-4xl mx-auto">
+                    <Cart
+                      onClose={() => navigate('/restaurants')}
+                      onOrderPlaced={handleOrderPlaced}
+                      isModal={false}
+                    />
+                  </div>
+                </main>
+
+                {trackingOrderId && (
+                  <OrderTracking
+                    orderId={trackingOrderId}
+                    onClose={() => setTrackingOrderId(null)}
+                    onRate={(orderId) => {
+                      setTrackingOrderId(null);
+                      setRatingOrderId(orderId);
+                    }}
+                  />
+                )}
+
+                {ratingOrderId && (
+                  <RatingForm
+                    orderId={ratingOrderId}
+                    onClose={() => setRatingOrderId(null)}
+                    onSuccess={() => {
+                      setRatingOrderId(null);
+                      alert('Thank you for your feedback!');
+                    }}
+                  />
+                )}
+
+                {reviewData && (
+                  <ReviewForm
+                    orderId={reviewData.orderId}
+                    restaurantId={reviewData.restaurantId}
+                    onClose={handleCloseReview}
+                    onSuccess={handleReviewSuccess}
+                  />
+                )}
+
+              </div>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Orders route */}
+        <Route
+          path="/orders"
+          element={
+            <ProtectedRoute>
+              <div className="min-h-screen bg-gray-50">
+                <Header
+                  onShowAuth={() => setAuthMode('login')}
+                  onShowOrders={() => navigate('/orders')}
+                  currentView={currentView}
+                  onToggleView={() => {
+                    setCurrentView(currentView === 'customer' ? 'restaurant' : 'customer');
+                    setSelectedRestaurant(null);
+                  }}
+                />
+                <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                  <div className="max-w-4xl mx-auto">
+                    <OrderHistory
+                      onViewOrder={handleViewOrder}
+                      onReviewRestaurant={handleReviewRestaurant}
+                    />
+                  </div>
+                </main>
+
+                {trackingOrderId && (
+                  <OrderTracking
+                    orderId={trackingOrderId}
+                    onClose={() => setTrackingOrderId(null)}
+                    onRate={(orderId) => {
+                      setTrackingOrderId(null);
+                      setRatingOrderId(orderId);
+                    }}
+                  />
+                )}
+
+                {ratingOrderId && (
+                  <RatingForm
+                    orderId={ratingOrderId}
+                    onClose={() => setRatingOrderId(null)}
+                    onSuccess={() => {
+                      setRatingOrderId(null);
+                      alert('Thank you for your feedback!');
+                    }}
+                  />
+                )}
+
+                {reviewData && (
+                  <ReviewForm
+                    orderId={reviewData.orderId}
+                    restaurantId={reviewData.restaurantId}
+                    onClose={handleCloseReview}
+                    onSuccess={handleReviewSuccess}
+                  />
+                )}
+
+              </div>
+            </ProtectedRoute>
+          }
+        />
+
         {/* Profile route */}
         <Route
           path="/profile"
@@ -287,15 +468,11 @@ function AppContent() {
               <div className="min-h-screen bg-gray-50">
                 <Header
                   onShowAuth={() => setAuthMode('login')}
-                  onShowOrders={() => {
-                    setShowOrderHistory(true);
-                    setSelectedRestaurant(null);
-                  }}
+                  onShowOrders={() => navigate('/orders')}
                   currentView={currentView}
                   onToggleView={() => {
                     setCurrentView(currentView === 'customer' ? 'restaurant' : 'customer');
                     setSelectedRestaurant(null);
-                    setShowOrderHistory(false);
                   }}
                 />
                 <Profile />
@@ -310,7 +487,6 @@ function AppContent() {
           element={<Navigate to={hasToken() ? "/restaurants" : "/"} replace />}
         />
       </Routes>
-    </Router>
   );
 }
 /* eslint-enable no-unused-vars */
@@ -319,7 +495,9 @@ function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <AppContent />
+        <Router>
+          <AppContentWithRoutes />
+        </Router>
       </CartProvider>
     </AuthProvider>
   );

@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../../lib/api';
 // eslint-disable-next-line no-unused-vars
 import { DollarSign, ShoppingBag, TrendingUp, Package } from 'lucide-react';
+// eslint-disable-next-line no-unused-vars
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 
 export function SalesReports({ restaurantId }) {
@@ -102,9 +104,76 @@ export function SalesReports({ restaurantId }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md">
+      <div className="bg-white rounded-lg shadow-md mb-8">
         <div className="px-6 py-4 border-b">
           <h3 className="text-lg font-bold text-gray-900">Top Selling Items</h3>
+        </div>
+        <div className="p-6">
+          {(!salesData.topItems || salesData.topItems.length === 0) ? (
+            <p className="text-gray-500 text-center py-8">No sales data available</p>
+          ) : (
+            <div>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={salesData.topItems.map(item => ({
+                    name: item.name,
+                    sales_count: item.quantity
+                  }))}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="name" 
+                    angle={-45}
+                    textAnchor="end"
+                    height={100}
+                    interval={0}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis 
+                    label={{ value: 'Number of Orders', angle: -90, position: 'insideLeft' }}
+                  />
+                  <Tooltip 
+                    formatter={(value) => [`${value} orders`, 'Sales Count']}
+                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                  />
+                  <Legend />
+                  <Bar 
+                    dataKey="sales_count" 
+                    fill="#f97316" 
+                    name="Sales Count"
+                    radius={[8, 8, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+              
+              <div className="mt-6 space-y-3">
+                {salesData.topItems.slice(0, 5).map((item, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="bg-orange-100 text-orange-600 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">{item.name}</p>
+                        <p className="text-sm text-gray-600">{item.quantity} sold</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-gray-900">${item.revenue.toFixed(2)}</p>
+                      <p className="text-xs text-gray-600">revenue</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md">
+        <div className="px-6 py-4 border-b">
+          <h3 className="text-lg font-bold text-gray-900">Detailed Sales List</h3>
         </div>
         <div className="p-6">
           {(!salesData.topItems || salesData.topItems.length === 0) ? (

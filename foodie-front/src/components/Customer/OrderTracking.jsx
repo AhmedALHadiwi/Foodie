@@ -19,8 +19,8 @@ export function OrderTracking({ orderId, onClose, onRate }) {
   useEffect(() => {
     loadOrder();
 
-    // Set up polling for real-time updates (every 10 seconds)
-    const interval = setInterval(loadOrder, 10000);
+    // Set up polling for real-time updates (every 5 seconds for better responsiveness)
+    const interval = setInterval(loadOrder, 5000);
 
     return () => {
       clearInterval(interval);
@@ -36,6 +36,27 @@ export function OrderTracking({ orderId, onClose, onRate }) {
       case 'cancelled': return -1;
       default: return 0;
     }
+  };
+
+  const formatTime = (timestamp) => {
+    if (!timestamp) return 'Estimating...';
+    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getTimeRemaining = (timestamp) => {
+    if (!timestamp) return null;
+    const now = new Date();
+    const target = new Date(timestamp);
+    const diff = target - now;
+    
+    if (diff <= 0) return 'Now';
+    
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 60) return `${minutes} min`;
+    
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `${hours}h ${remainingMinutes}min`;
   };
 
   if (loading) {
@@ -69,10 +90,10 @@ export function OrderTracking({ orderId, onClose, onRate }) {
   const isDelivered = order.status === 'delivered';
 
   const steps = [
-    { label: 'Order Placed', icon: Package, status: 'pending' },
-    { label: 'Preparing', icon: Clock, status: 'preparing' },
-    { label: 'On the Way', icon: Truck, status: 'on_the_way' },
-    { label: 'Delivered', icon: CheckCircle, status: 'delivered' },
+    { label: 'Order Placed', icon: Package, status: 'pending', time: order.placed_at },
+    { label: 'Preparing', icon: Clock, status: 'preparing', time: order.preparing_at },
+    { label: 'On the Way', icon: Truck, status: 'on_the_way', time: order.on_the_way_at },
+    { label: 'Delivered', icon: CheckCircle, status: 'delivered', time: order.delivered_at },
   ];
 
   return (
@@ -105,6 +126,7 @@ export function OrderTracking({ orderId, onClose, onRate }) {
                     const StepIcon = step.icon;
                     const isCompleted = index <= currentStep;
                     const isCurrent = index === currentStep;
+                    const timeRemaining = getTimeRemaining(step.time);
 
                     return (
                       <div key={step.status} className="flex flex-col items-center">
@@ -113,17 +135,27 @@ export function OrderTracking({ orderId, onClose, onRate }) {
                             isCompleted
                               ? 'bg-orange-500 text-white'
                               : 'bg-gray-200 text-gray-400'
-                          } ${isCurrent ? 'ring-4 ring-orange-200' : ''}`}
+                          } ${isCurrent ? 'ring-4 ring-orange-200 animate-pulse' : ''}`}
                         >
                           <StepIcon className="w-8 h-8" />
                         </div>
                         <p
-                          className={`text-xs font-medium text-center ${
+                          className={`text-xs font-medium text-center mb-1 ${
                             isCompleted ? 'text-gray-900' : 'text-gray-500'
                           }`}
                         >
                           {step.label}
                         </p>
+                        {step.time && (
+                          <p className={`text-xs text-center ${
+                            isCurrent ? 'text-orange-600 font-medium' : 'text-gray-500'
+                          }`}>
+                            {isCurrent && timeRemaining && timeRemaining !== 'Now' 
+                              ? `~${timeRemaining}` 
+                              : formatTime(step.time)
+                            }
+                          </p>
+                        )}
                       </div>
                     );
                   })}

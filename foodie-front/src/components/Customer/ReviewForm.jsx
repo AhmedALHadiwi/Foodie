@@ -1,13 +1,34 @@
 import { useState } from 'react';
 import { apiFetch } from '../../lib/api';
+import { useAuth } from '../../contexts/AuthContext';
 import { Star, X, Send } from 'lucide-react';
 
 export default function ReviewForm({ restaurantId, onClose, onSuccess }) {
+  const { user, profile } = useAuth();
   const [rating, setRating] = useState(0);
   const [hoveredStar, setHoveredStar] = useState(0);
   const [review, setReview] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Check if user is a restaurant owner
+  const userRole = user?.role || profile?.data?.user?.role;
+  if (userRole === 'owner') {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 text-center">
+          <h3 className="text-xl font-bold text-gray-900 mb-4">Access Denied</h3>
+          <p className="text-gray-600 mb-6">Restaurant owners cannot submit reviews.</p>
+          <button
+            onClick={onClose}
+            className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 font-medium transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,9 +42,16 @@ export default function ReviewForm({ restaurantId, onClose, onSuccess }) {
     setError('');
 
     try {
+      const currentUser = user || profile?.data?.user;
+      console.log('Submitting review with user:', { 
+        userId: currentUser?.id, 
+        userRole: currentUser?.role,
+        profileRole: profile?.data?.user?.role 
+      });
       const response = await apiFetch(`/restaurants/${restaurantId}/reviews`, {
         method: 'POST',
         body: JSON.stringify({
+          restaurant_id: restaurantId,
           rating,
           comment: review,
         }),
@@ -32,7 +60,14 @@ export default function ReviewForm({ restaurantId, onClose, onSuccess }) {
       onSuccess(response);
       onClose();
     } catch (err) {
-      setError(err.message || 'Failed to submit review');
+      // Handle specific error messages
+      if (err.message?.includes('already reviewed')) {
+        setError('You have already reviewed this restaurant. Each customer can only leave one review.');
+      } else if (err.message?.includes('cannot create review')) {
+        setError(err.message);
+      } else {
+        setError(err.message || 'Failed to submit review');
+      }
     }
     setLoading(false);
   };

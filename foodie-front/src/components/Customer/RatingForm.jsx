@@ -1,38 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../../lib/api';
-import { useAuth } from '../../contexts/AuthContext';
 import { Star, X } from 'lucide-react';
  
 export function RatingForm({ orderId, onClose, onSuccess }) {
-  const { user } = useAuth();
   const [order, setOrder] = useState(null);
   const [ratings, setRatings] = useState(new Map());
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadOrder();
-  }, [orderId]);
-
-  const loadOrder = async () => {
+  const loadOrder = useCallback(async () => {
     try {
       const data = await apiFetch(`/orders/${orderId}`);
       setOrder(data);
       const initialRatings = new Map();
       data.order_items.forEach((item) => {
-        initialRatings.set(item.menu_items.id, {
-          menu_item_id: item.menu_items.id,
-          rating: 0,
-          review: '',
-        });
+        if (item.dish && item.dish.id) {
+          initialRatings.set(item.dish.id, {
+            menu_item_id: item.dish.id,
+            rating: 0,
+            review: '',
+          });
+        }
       });
       setRatings(initialRatings);
     } catch (error) {
       console.error('Error loading order:', error);
     }
     setLoading(false);
-  };
+  }, [orderId]);
+
+  useEffect(() => {
+    loadOrder();
+  }, [loadOrder]);
 
   const updateRating = (menuItemId, rating) => {
     const newRatings = new Map(ratings);
@@ -84,26 +84,22 @@ export function RatingForm({ orderId, onClose, onSuccess }) {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent"></div>
-        </div>
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-4 border-orange-500 border-t-transparent"></div>
       </div>
     );
   }
 
-  if (!order) {
+  if (!order || !order.order_items) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-8 text-center">
-          <p className="text-gray-500">Order not found</p>
-          <button
-            onClick={onClose}
-            className="mt-4 bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 font-medium transition-colors"
-          >
-            Close
-          </button>
-        </div>
+      <div className="text-center p-8">
+        <p className="text-gray-600">Order not found</p>
+        <button
+          onClick={onClose}
+          className="mt-4 bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 font-medium transition-colors"
+        >
+          Close
+        </button>
       </div>
     );
   }
@@ -127,17 +123,18 @@ export function RatingForm({ orderId, onClose, onSuccess }) {
 
           <div className="space-y-6">
             {order.order_items.map((item) => {
-              const itemRating = ratings.get(item.menu_items.id);
+              if (!item.dish) return null;
+              const itemRating = ratings.get(item.dish.id);
               return (
                 <div key={item.id} className="border rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-900 mb-3">{item.menu_items.name}</h3>
+                  <h3 className="font-semibold text-gray-900 mb-3">{item.dish.name}</h3>
 
                   <div className="flex items-center space-x-2 mb-3">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
                         key={star}
                         type="button"
-                        onClick={() => updateRating(item.menu_items.id, star)}
+                        onClick={() => updateRating(item.dish.id, star)}
                         className="focus:outline-none transition-transform hover:scale-110"
                       >
                         <Star
@@ -158,7 +155,7 @@ export function RatingForm({ orderId, onClose, onSuccess }) {
 
                   <textarea
                     value={itemRating?.review || ''}
-                    onChange={(e) => updateReview(item.menu_items.id, e.target.value)}
+                    onChange={(e) => updateReview(item.dish.id, e.target.value)}
                     placeholder="Share your thoughts about this item (optional)"
                     rows={3}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"

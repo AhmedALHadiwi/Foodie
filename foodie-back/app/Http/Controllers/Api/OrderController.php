@@ -117,6 +117,19 @@ class OrderController extends Controller
         return response()->json($orders);
     }
 
+    public function updateStatus(Request $request, Order $order): JsonResponse
+    {
+        $validated = $request->validate([
+            'status' => 'required|string|in:pending,preparing,on_the_way,delivered,cancelled',
+        ]);
+
+        $order->status = $validated['status'];
+        $order->updateStatusWithTimestamp();
+        $order->save();
+
+        return response()->json($order);
+    }
+
     public function update(Request $request, Order $order): JsonResponse
     {
         $validated = $request->validate([

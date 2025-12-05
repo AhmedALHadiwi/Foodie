@@ -88,6 +88,20 @@ class RestaurantController extends Controller
 
     public function restaurant_categories($restaurantId): JsonResponse
     {
+        $restaurant = Restaurant::findOrFail($restaurantId);
+        $categories = $restaurant->categories()->with('dishes')->get();
+        return response()->json($categories);
+    }
+
+    public function restaurant_menu_items($restaurantId): JsonResponse
+    {
+        $restaurant = Restaurant::findOrFail($restaurantId);
+        $menuItems = $restaurant->dishes()->with('category')->get();
+        return response()->json($menuItems);
+    }
+
+    public function restaurant_categories_for_owner($restaurantId): JsonResponse
+    {
         $restaurant = Restaurant::where('id', $restaurantId)
             ->where('owner_id', auth()->id())
             ->firstOrFail();
@@ -95,7 +109,7 @@ class RestaurantController extends Controller
         return response()->json($categories);
     }
 
-    public function restaurant_menu_items($restaurantId): JsonResponse
+    public function restaurant_menu_items_for_owner($restaurantId): JsonResponse
     {
         $restaurant = Restaurant::where('id', $restaurantId)
             ->where('owner_id', auth()->id())
@@ -148,11 +162,41 @@ class RestaurantController extends Controller
             ];
         })->values();
 
+        // Calculate top selling items using proper join
+        $topItems = \DB::table('order_items')
+            ->join('dishes', 'order_items.dish_id', '=', 'dishes.id')
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->where('dishes.restaurant_id', $restaurantId)
+            ->when($period !== 'all', function ($query) use ($period) {
+                switch ($period) {
+                    case 'today':
+                        $query->whereDate('orders.created_at', today());
+                        break;
+                    case 'week':
+                        $query->whereBetween('orders.created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+                        break;
+                    case 'month':
+                        $query->whereMonth('orders.created_at', now()->month)
+                            ->whereYear('orders.created_at', now()->year);
+                        break;
+                }
+            })
+            ->select(
+                'dishes.name',
+                \DB::raw('COUNT(order_items.id) as quantity'),
+                \DB::raw('SUM(order_items.price * order_items.quantity) as revenue')
+            )
+            ->groupBy('dishes.id', 'dishes.name')
+            ->orderByDesc('quantity')
+            ->take(10)
+            ->get();
+
         return response()->json([
             'totalRevenue' => $totalRevenue,
             'totalOrders' => $totalOrders,
             'averageOrderValue' => $averageOrderValue,
             'salesByDay' => $salesByDay,
+            'topItems' => $topItems,
             'period' => $period
         ]);
     }

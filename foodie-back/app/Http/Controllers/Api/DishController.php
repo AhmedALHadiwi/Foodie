@@ -25,8 +25,6 @@ class DishController extends Controller
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'is_available' => 'boolean',
-            'prep_time_minutes' => 'nullable|integer|min:0',
-            'delivery_time_minutes' => 'nullable|integer|min:0',
             'preparing_time' => 'nullable|integer|min:0',
             'on_the_way_time' => 'nullable|integer|min:0',
         ]);
@@ -49,7 +47,8 @@ class DishController extends Controller
             'description' => 'nullable|string',
             'price' => 'sometimes|numeric|min:0',
             'is_available' => 'boolean',
-            'prep_time_minutes' => 'nullable|integer|min:0',
+            'preparing_time' => 'nullable|integer|min:0',
+            'on_the_way_time' => 'nullable|integer|min:0',
         ]);
 
         $dish->update($validated);

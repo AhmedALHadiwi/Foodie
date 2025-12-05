@@ -21,9 +21,21 @@ class ReviewController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is a customer
-        if ($user->role !== 'customer') {
-            return response()->json(['error' => 'Only customers can create reviews'], 403);
+        // Debug logging
+        \Log::info('Review submission attempt', [
+            'user_id' => $user?->id,
+            'user_role' => $user?->role,
+            'authenticated' => Auth::check(),
+        ]);
+
+        // Check if user is authenticated
+        if (!$user) {
+            return response()->json(['error' => 'User not authenticated'], 401);
+        }
+
+        // Check if user is a customer (not a restaurant owner)
+        if ($user->role === 'owner') {
+            return response()->json(['error' => 'Restaurant owners cannot create reviews', 'user_role' => $user->role], 403);
         }
 
         $validated = $request->validate([
@@ -42,10 +54,20 @@ class ReviewController extends Controller
             return response()->json(['error' => 'You have already reviewed this restaurant'], 422);
         }
 
+        // Get dish_id - either provided or first dish from restaurant
+        $dishId = $validated['dish_id'] ?? null;
+        if (empty($dishId)) {
+            $firstDish = \App\Models\Dish::where('restaurant_id', $validated['restaurant_id'])->first();
+            if (!$firstDish) {
+                return response()->json(['error' => 'Cannot create review: restaurant has no dishes'], 422);
+            }
+            $dishId = $firstDish->id;
+        }
+
         $review = Review::create([
             'user_id' => $user->id,
             'restaurant_id' => $validated['restaurant_id'],
-            'dish_id' => $validated['dish_id'] ?? null,
+            'dish_id' => $dishId,
             'rating' => $validated['rating'],
             'comment' => $validated['comment'],
             'is_visible' => true,
@@ -53,6 +75,34 @@ class ReviewController extends Controller
 
         $review->load(['user', 'restaurant', 'dish']);
         return response()->json($review, 201);
+    }
+
+    public function userReview($restaurantId): JsonResponse
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['hasReviewed' => false]);
+        }
+
+        $review = Review::where('user_id', $user->id)
+            ->where('restaurant_id', $restaurantId)
+            ->first();
+
+        return response()->json([
+            'hasReviewed' => $review !== null,
+            'review' => $review
+        ]);
+    }
+
+    public function restaurantReviews($restaurantId): JsonResponse
+    {
+        $reviews = Review::where('restaurant_id', $restaurantId)
+            ->with(['user', 'dish'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($reviews);
     }
 
     public function show(Review $review): JsonResponse
@@ -91,26 +141,5 @@ class ReviewController extends Controller
 
         $review->delete();
         return response()->json(null, 204);
-    }
-
-    // Get reviews for a specific restaurant
-    public function restaurantReviews(Restaurant $restaurant): JsonResponse
-    {
-        $reviews = $restaurant->reviews()
-            ->with(['user'])
-            ->where('is_visible', true)
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($review) {
-                return [
-                    'id' => $review->id,
-                    'rating' => $review->rating,
-                    'comment' => $review->comment,
-                    'customer_name' => $review->user->full_name,
-                    'created_at' => $review->created_at->format('Y-m-d H:i:s'),
-                ];
-            });
-
-        return response()->json($reviews);
     }
 }

@@ -1,10 +1,12 @@
 import { useAuth } from '../../contexts/AuthContext';
+import { useCart } from '../../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
-import { LogOut, User, ShoppingBag, History, Store } from 'lucide-react';
+import { LogOut, User, ShoppingBag, History, Store, ShoppingCart } from 'lucide-react';
 
 export function Header({ onShowAuth, onShowOrders, currentView, onToggleView }) {
   const { user, profile, signOut } = useAuth();
+  const { items } = useCart();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -54,6 +56,20 @@ export function Header({ onShowAuth, onShowOrders, currentView, onToggleView }) 
                   >
                     <History className="w-4 h-4 mr-2" />
                     My Orders
+                  </button>
+                )}
+                {currentView === 'customer' && (
+                  <button
+                    onClick={() => navigate('/cart')}
+                    className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium inline-flex items-center transition-colors relative"
+                  >
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    Cart
+                    {items.length > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {items.reduce((sum, item) => sum + item.quantity, 0)}
+                      </span>
+                    )}
                   </button>
                 )}
                 <button

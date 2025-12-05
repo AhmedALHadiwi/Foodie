@@ -22,6 +22,10 @@ Route::middleware(['auth.redirect'])
             });
     });
 
+// Public restaurant routes (accessible without authentication for customers)
+Route::get('/restaurants/{restaurantId}/categories', [RestaurantController::class, 'restaurant_categories']);
+Route::get('/restaurants/{restaurantId}/menu-items', [RestaurantController::class, 'restaurant_menu_items']);
+
 Route::middleware(['auth:sanctum'])
     ->group(function () {
 
@@ -38,13 +42,15 @@ Route::middleware(['auth:sanctum'])
         });
 
         Route::get('/restaurants/{restaurantId}/orders', [OrderController::class, 'restaurant_orders']);
-        Route::get('/restaurants/{restaurantId}/categories', [RestaurantController::class, 'restaurant_categories']);
-        Route::get('/restaurants/{restaurantId}/menu-items', [RestaurantController::class, 'restaurant_menu_items']);
+        Route::get('/restaurants/{restaurantId}/categories-owner', [RestaurantController::class, 'restaurant_categories_for_owner']);
+        Route::get('/restaurants/{restaurantId}/menu-items-owner', [RestaurantController::class, 'restaurant_menu_items_for_owner']);
         Route::get('/restaurants/{restaurantId}/sales', [RestaurantController::class, 'restaurant_sales']);
         Route::get('/restaurants/{restaurantId}/reviews', [ReviewController::class, 'restaurantReviews']);
+        Route::get('/restaurants/{restaurantId}/user-review', [ReviewController::class, 'userReview']);
         Route::post('/restaurants/{restaurantId}/reviews', [ReviewController::class, 'store']);
         Route::get('/my-restaurant', [RestaurantController::class, 'myRestaurant']);
         Route::get('/customer/orders', [OrderController::class, 'customer_orders']);
+        Route::put('/orders/{order}/status', [OrderController::class, 'updateStatus']);
 
         // API Routes for Foodie App
         Route::apiResource('restaurants', RestaurantController::class);

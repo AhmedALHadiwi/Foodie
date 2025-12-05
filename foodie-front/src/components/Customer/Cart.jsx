@@ -3,9 +3,9 @@ import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiFetch } from '../../lib/api';
 // eslint-disable-next-line no-unused-vars
-import { X, Minus, Plus, Trash2 } from 'lucide-react';
+import { X, Minus, Plus, Trash2, ShoppingCart } from 'lucide-react';
 
-export function Cart({ onClose, onOrderPlaced }) {
+export function Cart({ onClose, onOrderPlaced, isModal = true }) {
   const { items, removeItem, updateQuantity, updateInstructions, clearCart, total, restaurantId } = useCart();
   const { user, profile } = useAuth();
   const [deliveryAddress, setDeliveryAddress] = useState(profile?.default_address || '');
@@ -52,9 +52,14 @@ export function Cart({ onClose, onOrderPlaced }) {
   };
 
   if (items.length === 0) {
+    const wrapperClass = isModal 
+      ? "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      : "min-h-screen bg-gray-50 flex items-center justify-center p-4";
+    const containerClass = "bg-white rounded-lg shadow-xl max-w-md w-full p-8 text-center";
+
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-8 text-center">
+      <div className={wrapperClass}>
+        <div className={containerClass}>
           <ShoppingCart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h2>
           <p className="text-gray-600 mb-6">Add some delicious items to get started</p>
@@ -69,14 +74,23 @@ export function Cart({ onClose, onOrderPlaced }) {
     );
   }
 
+  const wrapperClass = isModal 
+    ? "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto"
+    : "min-h-screen bg-gray-50 py-8";
+  const containerClass = isModal 
+    ? "bg-white rounded-lg shadow-xl max-w-2xl w-full my-8"
+    : "bg-white rounded-lg shadow-xl max-w-4xl mx-auto";
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full my-8">
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between rounded-t-lg">
+    <div className={wrapperClass}>
+      <div className={containerClass}>
+        <div className={`${isModal ? 'sticky top-0' : ''} bg-white border-b px-6 py-4 flex items-center justify-between ${isModal ? 'rounded-t-lg' : ''}`}>
           <h2 className="text-2xl font-bold text-gray-900">Your Cart</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X className="w-6 h-6" />
-          </button>
+          {isModal && (
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <X className="w-6 h-6" />
+            </button>
+          )}
         </div>
 
         <div className="p-6 max-h-[60vh] overflow-y-auto">
@@ -170,19 +184,29 @@ export function Cart({ onClose, onOrderPlaced }) {
           </div>
         </div>
 
-        <div className="border-t px-6 py-4 bg-gray-50 rounded-b-lg">
+        <div className={`border-t px-6 py-4 bg-gray-50 ${isModal ? 'rounded-b-lg' : ''}`}>
           <div className="flex items-center justify-between mb-4">
             <span className="text-lg font-semibold text-gray-900">Total</span>
             <span className="text-2xl font-bold text-orange-600">${total.toFixed(2)}</span>
           </div>
 
-          <button
-            onClick={handleCheckout}
-            disabled={loading}
-            className="w-full bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed font-bold transition-colors"
-          >
-            {loading ? 'Placing Order...' : 'Place Order'}
-          </button>
+          <div className="flex space-x-3">
+            {!isModal && (
+              <button
+                onClick={onClose}
+                className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-bold transition-colors"
+              >
+                Continue Shopping
+              </button>
+            )}
+            <button
+              onClick={handleCheckout}
+              disabled={loading}
+              className={`${isModal ? 'w-full' : 'flex-1'} bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed font-bold transition-colors`}
+            >
+              {loading ? 'Placing Order...' : 'Place Order'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

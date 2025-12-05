@@ -19,8 +19,6 @@ class Dish extends Model
         'description',
         'price',
         'is_available',
-        'prep_time_minutes',
-        'delivery_time_minutes',
         'preparing_time',
         'on_the_way_time',
     ];

@@ -1,28 +1,33 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { Eye, Package } from 'lucide-react';
+import { Eye, Package, Star } from 'lucide-react';
  
 export function OrderHistory({ onViewOrder, onReviewRestaurant }) {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  console.log('OrderHistory component rendering, user:', user?.id);
+
+  const loadOrders = useCallback(async () => {
+    try {
+      console.log('Loading orders for user:', user?.id);
+      const data = await apiFetch('/customer/orders');
+      console.log('Orders data received:', data);
+      setOrders(data || []);
+    } catch (error) {
+      console.error('Error loading orders:', error);
+      setOrders([]);
+    }
+    setLoading(false);
+  }, [user?.id]);
+
   useEffect(() => {
     if (user) {
       loadOrders();
     }
-  }, [user]);
-
-  const loadOrders = async () => {
-    try {
-      const data = await apiFetch('/customer/orders');
-      setOrders(data || []);
-    } catch (error) {
-      console.error('Error loading orders:', error);
-    }
-    setLoading(false);
-  };
+  }, [user, loadOrders]);
 
   const getStatusColor = (status) => {
     switch (status) {

@@ -23,6 +23,9 @@ class Order extends Model
         'total_amount',
         'status',
         'placed_at',
+        'preparing_at',
+        'on_the_way_at',
+        'delivered_at',
         'estimated_delivery_at',
         'delivery_address',
         'payment_id',
@@ -34,6 +37,9 @@ class Order extends Model
         'tax' => 'float',
         'total_amount' => 'float',
         'placed_at' => 'datetime',
+        'preparing_at' => 'datetime',
+        'on_the_way_at' => 'datetime',
+        'delivered_at' => 'datetime',
         'estimated_delivery_at' => 'datetime',
     ];
 
@@ -97,28 +103,28 @@ class Order extends Model
             return;
         }
 
-        $totalMinutes = $this->getTotalPreparationTime();
-        $this->estimated_delivery_at = $this->placed_at->copy()->addMinutes($totalMinutes);
+        $prepMinutes = $this->getPreparationTimeMinutes();
+        $deliveryMinutes = $this->getDeliveryTimeMinutes();
+
+        // Calculate timestamps
+        $this->preparing_at = $this->placed_at->copy();
+        $this->on_the_way_at = $this->placed_at->copy()->addMinutes($prepMinutes);
+        $this->delivered_at = $this->placed_at->copy()->addMinutes($prepMinutes + $deliveryMinutes);
+
+        // Keep estimated delivery for compatibility
+        $this->estimated_delivery_at = $this->delivered_at;
     }
 
     public function shouldUpdateStatus(): bool
     {
-        if (!$this->placed_at) {
-            return false;
-        }
-
         $now = now();
-        $prepMinutes = $this->getPreparationTimeMinutes();
-        $deliveryMinutes = $this->getDeliveryTimeMinutes();
 
-        if ($this->status === 'preparing') {
-            $prepTimeEnd = $this->placed_at->copy()->addMinutes($prepMinutes);
-            return $now->gte($prepTimeEnd);
+        if ($this->status === 'preparing' && $this->on_the_way_at) {
+            return $now->gte($this->on_the_way_at);
         }
 
-        if ($this->status === 'on_the_way') {
-            $deliveryTimeEnd = $this->placed_at->copy()->addMinutes($prepMinutes + $deliveryMinutes);
-            return $now->gte($deliveryTimeEnd);
+        if ($this->status === 'on_the_way' && $this->delivered_at) {
+            return $now->gte($this->delivered_at);
         }
 
         return false;
@@ -142,6 +148,13 @@ class Order extends Model
         $nextStatus = $this->getNextStatus();
         if ($nextStatus) {
             $this->status = $nextStatus;
+
+            // Set the timestamp when status changes
+            if ($nextStatus === 'on_the_way' && !$this->on_the_way_at) {
+                $this->on_the_way_at = now();
+            } elseif ($nextStatus === 'delivered' && !$this->delivered_at) {
+                $this->delivered_at = now();
+            }
         }
     }
 }
