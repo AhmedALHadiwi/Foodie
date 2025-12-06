@@ -52,3 +52,15 @@ export async function apiFetch(
     throw error;
   }
 }
+
+// Payment API functions
+export async function getPaymentMethods() {
+  return apiFetch('/payment-methods');
+}
+
+export async function simulatePayment(paymentData) {
+  return apiFetch('/payments/simulate', {
+    method: 'POST',
+    body: JSON.stringify(paymentData),
+  });
+}

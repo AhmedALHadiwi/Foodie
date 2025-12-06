@@ -56,18 +56,17 @@ Route::middleware(['auth:sanctum'])
         Route::apiResource('restaurants', RestaurantController::class);
         Route::apiResource('categories', CategoryController::class);
         Route::apiResource('dishes', DishController::class);
-        Route::apiResource('carts', CartController::class);
         Route::apiResource('orders', OrderController::class);
         Route::apiResource('payments', PaymentController::class);
         Route::apiResource('reviews', ReviewController::class);
-        Route::apiResource('notifications', NotificationController::class);
+
+        // Payment simulation routes
+        Route::post('payments/simulate', [PaymentController::class, 'simulatePayment']);
+        Route::get('payment-methods', [PaymentController::class, 'getPaymentMethods']);
 
         // Menu items management
         Route::post('menu-items', [DishController::class, 'store']);
         Route::put('menu-items/{dish}', [DishController::class, 'update']);
         Route::delete('menu-items/{dish}', [DishController::class, 'destroy']);
 
-        // Additional notification routes
-        Route::patch('notifications/{notification}/mark-as-read', [NotificationController::class, 'markAsRead']);
-        Route::patch('notifications/mark-all-as-read', [NotificationController::class, 'markAllAsRead']);
     });
