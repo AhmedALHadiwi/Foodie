@@ -139,9 +139,6 @@ class RestaurantController extends Controller
                 $query->whereMonth('created_at', now()->month)
                     ->whereYear('created_at', now()->year);
                 break;
-            case 'all':
-                // No time filter
-                break;
         }
 
         $orders = $query->with('items')->get();

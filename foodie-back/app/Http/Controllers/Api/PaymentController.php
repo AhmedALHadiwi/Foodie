@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Order;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -27,6 +28,9 @@ class PaymentController extends Controller
         ]);
 
         $payment = Payment::create($validated);
+        $order = Order::find($validated['order_id']);
+        $order->payment_id = $payment->id;
+        $order->save();
         return response()->json($payment, 201);
     }
 
@@ -60,11 +64,11 @@ class PaymentController extends Controller
         $validated = $request->validate([
             'order_id' => 'required|exists:orders,id',
             'payment_method' => 'required|string|in:credit_card,wallet,bank_transfer',
-            'card_number' => 'nullable|string|max:16',
+            'card_number' => 'nullable|required_if:payment_method,credit_card|string|max:16',
             'amount' => 'required|numeric|min:0',
         ]);
 
-        $order = \App\Models\Order::find($validated['order_id']);
+        $order = Order::find($validated['order_id']);
 
         // Simulate payment processing
         $isSuccessful = $this->processMockPayment($validated['payment_method'], $validated['card_number'] ?? null);
@@ -78,10 +82,9 @@ class PaymentController extends Controller
             'paid_at' => $isSuccessful ? now() : null,
         ]);
 
-        // Update order status if payment successful
-        if ($isSuccessful) {
-            $order->update(['status' => 'paid']);
-        }
+        $order = Order::find($validated['order_id']);
+        $order->payment_id = $payment->id;
+        $order->save();
 
         return response()->json([
             'success' => $isSuccessful,
@@ -96,7 +99,7 @@ class PaymentController extends Controller
         $successRates = [
             'credit_card' => 0.85, // 85% success rate
             'wallet' => 0.95,      // 95% success rate
-            'bank_transfer' => 0.90 // 90% success rate
+            'bank_transfer' => 1 // 90% success rate
         ];
 
         $successRate = $successRates[$method] ?? 0.5;

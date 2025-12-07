@@ -58,10 +58,6 @@ class User extends Authenticatable
         return $this->hasMany(Restaurant::class, 'owner_id');
     }
 
-    public function carts(): HasMany
-    {
-        return $this->hasMany(Cart::class);
-    }
 
     public function orders(): HasMany
     {
@@ -78,18 +74,4 @@ class User extends Authenticatable
         return $this->hasMany(Review::class);
     }
 
-    public function restaurantAdmins(): HasMany
-    {
-        return $this->hasMany(RestaurantAdmin::class);
-    }
-
-    public function notifications(): HasMany
-    {
-        return $this->hasMany(Notification::class);
-    }
-
-    public function orderStatusHistory(): HasMany
-    {
-        return $this->hasMany(OrderStatusHistory::class, 'changed_by');
-    }
 }

@@ -73,8 +73,4 @@ class Restaurant extends Model
         return $this->reviews()->count();
     }
 
-    public function restaurantAdmins(): HasMany
-    {
-        return $this->hasMany(RestaurantAdmin::class);
-    }
 }

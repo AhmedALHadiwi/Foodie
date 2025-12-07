@@ -24,7 +24,7 @@ return new class extends Migration {
             $table->dateTime('placed_at');
             $table->dateTime('estimated_delivery_at')->nullable();
             $table->text('delivery_address');
-            $table->foreignId('payment_id')->nullable();
+            $table->foreignId('payment_id')->nullable()->constrained();
             $table->timestamps();
         });
     }
